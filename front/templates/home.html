@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Generator</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #6c63ff;
+            --accent-hover: #5a52e0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            background: linear-gradient(45deg, var(--accent), #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .description {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+        }
+
+        #quiz-description {
+            width: 100%;
+            min-height: 200px;
+            padding: 1.5rem;
+            background-color: var(--bg-secondary);
+            border: 2px solid #3d3d3d;
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+            margin-bottom: 1.5rem;
+        }
+
+        #quiz-description:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        #generate-button {
+            display: block;
+            width: 200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        #generate-button:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        #response-container {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: var(--bg-secondary);
+            border-radius: 12px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        #response-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .error {
+            color: #ff6b6b;
+        }
+
+        .loading {
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quiz Generator</h1>
+        <p class="description">What would you like to learn today?</p>
+        
+        <textarea 
+            id="quiz-description" 
+            placeholder="Example: Create a quiz about the solar system with 5 multiple choice questions..."
+        ></textarea>
+        
+        <button id="generate-button">Generate Quiz</button>
+        <div id="response-container"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const generateButton = document.getElementById('generate-button');
+            const quizDescription = document.getElementById('quiz-description');
+            const responseContainer = document.getElementById('response-container');
+
+            generateButton.addEventListener('click', async () => {
+                const description = quizDescription.value.trim();
+
+                if (!description) {
+                    responseContainer.innerHTML = '<p class="error">Please enter a description.</p>';
+                    responseContainer.classList.add('visible');
+                    return;
+                }
+
+                // Show loading state
+                generateButton.disabled = true;
+                generateButton.textContent = 'Generating...';
+                responseContainer.innerHTML = '<p class="loading">Creating your quiz...</p>';
+                responseContainer.classList.add('visible');
+
+                try {
+                    const response = await fetch('/query-gemini/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ description })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        responseContainer.innerHTML = `<p>${data.response}</p>`;
+                    } else {
+                        responseContainer.innerHTML = `<p class="error">${data.error || 'Failed to generate quiz.'}</p>`;
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    responseContainer.innerHTML = '<p class="error">An error occurred. Please try again later.</p>';
+                } finally {
+                    generateButton.disabled = false;
+                    generateButton.textContent = 'Generate Quiz';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
