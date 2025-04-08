@@ -11,6 +11,9 @@ import json
 from jsonschema import validate, ValidationError
 from .utils import validate_quiz_response, generate_quiz_prompt
 
+import logging
+
+logger = logging.getLogger('custom_logger')
 
 # Load environment variables from .env file
 load_dotenv()
