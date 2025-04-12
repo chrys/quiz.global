@@ -1,55 +1,65 @@
 import json
 from jsonschema import validate, ValidationError
+import logging
+
+from .schemas import Quiz
+
+logger = logging.getLogger('custom_logger')
+
+
+def write_response_to_file(response_text, file_path):
+    """
+    Writes the response text to a file.
+    """
+    try:
+        with open(file_path, 'w', encoding='utf-8') as file:
+            file.write(response_text)
+        logger.info(f"Response successfully written to {file_path}")
+    except Exception as e:
+        logger.error(f"Error writing response to file: {e}")
+
 
 def validate_quiz_response(response_text):
-    schema = {
-        "type": "array",
-        "items": {
-            "type": "object",
-            "required": ["id", "topic", "difficulty", "type", "question_text", "options", "correct_answer_id", "explanation"],
-            "properties": {
-                "id": {"type": "string", "pattern": "^q_topic_[0-9]{3}$"},
-                "topic": {"type": "string"},
-                "difficulty": {"type": "string", "enum": ["Easy", "Medium", "Hard"]},
-                "type": {"type": "string", "enum": ["MCQ"]},
-                "question_text": {"type": "string"},
-                "options": {
-                    "type": "array",
-                    "minItems": 4,
-                    "maxItems": 4,
-                    "items": {
-                        "type": "object",
-                        "required": ["option_id", "text"],
-                        "properties": {
-                            "option_id": {"type": "string", "enum": ["a", "b", "c", "d"]},
-                            "text": {"type": "string"}
-                        }
-                    }
-                },
-                "correct_answer_id": {"type": "string", "enum": ["a", "b", "c", "d"]},
-                "explanation": {"type": "string"}
-            }
-        }
-    }
-
     try:
-        quiz_data = json.loads(response_text)
-        validate(instance=quiz_data, schema=schema)
+        my_schema = Quiz.model_json_schema()
+        # Strip Markdown code block syntax if present
+        cleaned_response = response_text.strip()
+        if cleaned_response.startswith('```'):
+            # Remove opening ```json or ``` line
+            cleaned_response = cleaned_response.split('\n', 1)[1]
+        if cleaned_response.endswith('```'):
+            # Remove closing ``` line
+            cleaned_response = cleaned_response.rsplit('\n', 1)[0]
+        
+        cleaned_response = cleaned_response.strip()
+        quiz_data = json.loads(cleaned_response)
+        
+        # Write the original JSON string to file for debugging
+        write_response_to_file(cleaned_response, 'response.json')
+        
+        logger.info(f"Validating quiz data: {quiz_data}")
+        # Validate the JSON structure against the schema
+        validate(instance=quiz_data, schema=my_schema)
         return True, ""
     except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error: {e}")
         return False, f"Invalid JSON format: {str(e)}"
     except ValidationError as e:
+        logger.error(f"Validation error: {e}")
         return False, f"Schema validation failed: {str(e)}"
     except Exception as e:
+        logger.error(f"Unexpected error during validation: {e}")
         return False, f"Unexpected error during validation: {str(e)}"
 
 
 def generate_quiz_prompt(description):
     return f"""Create a quiz based on this description: {description}
-    Generate the response as a JSON array of question objects with this structure:
+    IMPORTANT: Return ONLY the raw JSON array without any Markdown formatting or code blocks.
+    DO NOT include ```json or ``` markers.
+    Generate a complete and valid JSON array of question objects with this structure:
     [
         {{
-            "id": "q_topic_001",
+            "id": "q_topic_001", # IMPORTANT: ID must follow pattern 'q_topic_XXX' where XXX is a 3-digit number
             "topic": "Topic Name",
             "difficulty": "Easy/Medium/Hard",
             "type": "MCQ",
@@ -64,4 +74,8 @@ def generate_quiz_prompt(description):
             "explanation": "Explanation of the correct answer"
         }}
     ]
-    Ensure the response is valid JSON and matches this format exactly."""
+    IMPORTANT RULES:
+    1. The 'id' field MUST follow the exact pattern 'q_topic_XXX' where XXX is a 3-digit number (001-999)
+    2. Do not use any other format for the ID field
+    3. Example valid IDs: 'q_topic_001', 'q_topic_002', 'q_topic_010', 'q_topic_999'
+    4. Return ONLY the JSON array with no additional text or formatting."""

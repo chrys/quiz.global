@@ -172,3 +172,6 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+quiz2.code-workspace
+response.json
+front/test_json.py
