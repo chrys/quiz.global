@@ -1,8 +1,34 @@
 {
 	"folders": [
 		{
-			"path": "."
+			"path": "." // Includes the current directory as the workspace folder
 		}
 	],
-	"settings": {}
+	"settings": {
+        // --- Python Virtual Environment Settings ---
+
+        // Tells VS Code which Python interpreter to use by default for this workspace.
+        // Replace '.venv' if your virtual environment folder has a different name (e.g., 'venv', 'env').
+        // Adjust the path based on your OS:
+        //   - Linux/macOS: typically '.venv/bin/python'
+        //   - Windows:     typically '.venv\\Scripts\\python.exe'
+        "python.defaultInterpreterPath": "/opt/homebrew/opt/python@3.13/bin/python3.13", // <-- EXAMPLE FOR LINUX/MACOS
+        // "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe", // <-- EXAMPLE FOR WINDOWS (uncomment the one you need)
+
+        // Automatically activate the selected environment when opening a new terminal?
+        "python.terminal.activateEnvironment": true,
+
+        // --- Optional: Hide the virtual environment folder from the explorer ---
+        "files.exclude": {
+            "**/.venv": true, // Hides the .venv folder
+            "**/.pytest_cache": true,
+            "**/.mypy_cache": true,
+            "**/__pycache__": true,
+            "**/*.pyc": true
+        },
+        // --- Optional: Exclude the virtual environment folder from search results ---
+        "search.exclude": {
+            "**/.venv": true // Excludes .venv from search
+        }
+	}
 }
