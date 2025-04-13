@@ -2,6 +2,9 @@ import json
 from jsonschema import validate, ValidationError
 import logging
 
+from .models import Quiz, Question, AnswerOption
+
+
 from .schemas import Quiz
 
 logger = logging.getLogger('custom_logger')
@@ -53,6 +56,7 @@ def validate_quiz_response(response_text):
 
 
 def generate_quiz_prompt(description):
+    
     return f"""Create a quiz based on this description: {description}
     IMPORTANT: Return ONLY the raw JSON array without any Markdown formatting or code blocks.
     DO NOT include ```json or ``` markers.
@@ -79,3 +83,49 @@ def generate_quiz_prompt(description):
     2. Do not use any other format for the ID field
     3. Example valid IDs: 'q_topic_001', 'q_topic_002', 'q_topic_010', 'q_topic_999'
     4. Return ONLY the JSON array with no additional text or formatting."""
+    
+
+def create_quiz(description: str) -> tuple[bool, str, int]:
+    """
+    Creates a quiz in the database based on the validated response from Gemini API.
+    
+    Args:
+        description (str): The description/topic for the quiz
+        
+    Returns:
+        tuple: (success: bool, message: str, quiz_id: int)
+            - success: True if quiz was created successfully
+            - message: Success/error message
+            - quiz_id: ID of the created quiz or None if failed
+    """
+    try:
+        # Create the Quiz instance
+        quiz = Quiz.objects.create(
+            title=f"Quiz about {description}",
+            description=description
+        )
+        
+        # Create Questions and Options
+        for q_data in quiz_data:
+            # Create Question
+            question = Question.objects.create(
+                quiz=quiz,
+                question_text=q_data['question_text'],
+                question_type=q_data['type'],
+                order_in_quiz=int(q_data['id'].split('_')[-1])  # Extract number from q_topic_XXX
+            )
+            
+            # Create Answer Options
+            for opt in q_data['options']:
+                AnswerOption.objects.create(
+                    question=question,
+                    option_text=opt['text'],
+                    is_correct=(opt['option_id'] == q_data['correct_answer_id'])
+                )
+        
+        logger.info(f"Successfully created quiz {quiz.quiz_id} with {len(quiz_data)} questions")
+        return True, "Quiz created successfully", quiz.quiz_id
+        
+    except Exception as e:
+        logger.error(f"Error creating quiz: {str(e)}")
+        return False, f"Failed to create quiz: {str(e)}", None
