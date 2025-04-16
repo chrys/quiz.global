@@ -5,7 +5,7 @@ import logging
 from .models import Quiz, Question, AnswerOption
 
 
-from .schemas import Quiz
+from .schemas import QuizSchema
 
 logger = logging.getLogger('custom_logger')
 
@@ -24,7 +24,7 @@ def write_response_to_file(response_text, file_path):
 
 def validate_quiz_response(response_text):
     try:
-        my_schema = Quiz.model_json_schema()
+        my_schema = QuizSchema.model_json_schema()
         # Strip Markdown code block syntax if present
         cleaned_response = response_text.strip()
         if cleaned_response.startswith('```'):
@@ -84,13 +84,12 @@ def generate_quiz_prompt(description):
     3. Example valid IDs: 'q_topic_001', 'q_topic_002', 'q_topic_010', 'q_topic_999'
     4. Return ONLY the JSON array with no additional text or formatting."""
     
-
-def create_quiz(description: str) -> tuple[bool, str, int]:
+def create_quiz(quiz_data: str) -> tuple[bool, str, int]:
     """
-    Creates a quiz in the database based on the validated response from Gemini API.
+    Creates a quiz in the database based on the validated JSON data.
     
     Args:
-        description (str): The description/topic for the quiz
+        quiz_data (str): JSON string containing validated quiz data
         
     Returns:
         tuple: (success: bool, message: str, quiz_id: int)
@@ -99,14 +98,24 @@ def create_quiz(description: str) -> tuple[bool, str, int]:
             - quiz_id: ID of the created quiz or None if failed
     """
     try:
+        # Parse the JSON data
+        questions_data = json.loads(quiz_data)
+        
+        if not questions_data:
+            return False, "Empty quiz data", None
+            
+        # Extract topic from first question for the quiz title
+        first_question = questions_data[0]
+        topic = first_question.get('topic', 'General Knowledge')
+        
         # Create the Quiz instance
         quiz = Quiz.objects.create(
-            title=f"Quiz about {description}",
-            description=description
+            title=f"Quiz about {topic}",
+            description=f"A quiz containing {len(questions_data)} questions about {topic}"
         )
         
         # Create Questions and Options
-        for q_data in quiz_data:
+        for q_data in questions_data:
             # Create Question
             question = Question.objects.create(
                 quiz=quiz,
@@ -123,9 +132,12 @@ def create_quiz(description: str) -> tuple[bool, str, int]:
                     is_correct=(opt['option_id'] == q_data['correct_answer_id'])
                 )
         
-        logger.info(f"Successfully created quiz {quiz.quiz_id} with {len(quiz_data)} questions")
+        logger.info(f"Successfully created quiz {quiz.quiz_id} with {len(questions_data)} questions")
         return True, "Quiz created successfully", quiz.quiz_id
         
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON data: {e}")
+        return False, f"Invalid JSON data: {str(e)}", None
     except Exception as e:
-        logger.error(f"Error creating quiz: {str(e)}")
+        logger.error(f"Error creating quiz: {e}")
         return False, f"Failed to create quiz: {str(e)}", None

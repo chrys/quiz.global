@@ -15,5 +15,5 @@ class QuizQuestion(BaseModel):
     correct_answer_id: str = Field(..., pattern="^(a|b|c|d)$", description="Correct answer ID must be one of 'a', 'b', 'c', or 'd'")
     explanation: str = Field(..., description="Explanation of the correct answer")
 
-class Quiz(RootModel[List[QuizQuestion]]):
+class QuizSchema(RootModel[List[QuizQuestion]]):
     """Root model for a list of quiz questions."""
