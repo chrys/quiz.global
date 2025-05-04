@@ -5,15 +5,16 @@ import os
 from dotenv import load_dotenv
 from django.shortcuts import render
 from django.http import JsonResponse
-import json
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404, render
 import json
 from jsonschema import validate, ValidationError
 from .utils import *
 from .schemas import QuizSchema
+from .models import Quiz
 
 import logging
-
 logger = logging.getLogger('custom_logger')
 
 # Load environment variables from .env file
@@ -98,11 +99,18 @@ def query_gemini(request):
                 success, message, quiz_id = create_quiz(response.text)
                 if success:
                     logger.info(f"Created quiz with ID: {quiz_id}")
+                    # return JsonResponse({
+                    #     'success': True,
+                    #     'message': message,
+                    #     'quiz_id': quiz_id,
+                    #     'response': response.text
+                    # })
+                    quiz_url = reverse('quiz_detail', args=[quiz_id])
                     return JsonResponse({
                         'success': True,
-                        'message': message,
                         'quiz_id': quiz_id,
-                        'response': response.text
+                        'quiz_url': quiz_url,
+                        'message': message,
                     })
                 else:
                     logger.error(f"Failed to create quiz: {message}")
@@ -120,3 +128,9 @@ def query_gemini(request):
     return JsonResponse({'error': 'Invalid request method'}, status=405) 
 
 
+def quiz_detail(request, quiz_id):
+    try:
+        quiz = get_object_or_404(Quiz, pk=quiz_id)
+        return render(request, 'quiz.html', {'quiz': quiz})
+    except Quiz.DoesNotExist:
+        return JsonResponse({'error': 'Quiz not found'}, status=404)

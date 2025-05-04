@@ -55,7 +55,9 @@ ROOT_URLCONF = 'quiz2.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            BASE_DIR / 'front' / 'templates',  # This points to /Users/chrys/Projects/quiz2/front/templates/
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

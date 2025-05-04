@@ -162,7 +162,13 @@
                     const data = await response.json();
                     
                     if (response.ok) {
-                        responseContainer.innerHTML = `<p>${data.response}</p>`;
+                        if (data.quiz_url) {
+                            responseContainer.innerHTML = `<p>Quiz created: <a href="${data.quiz_url}">View your quiz</a></p>`;
+                        } else if (data.response) {
+                            responseContainer.innerHTML = `<p>${data.response}</p>`;
+                        } else {
+                            responseContainer.innerHTML = `<p class="error">No quiz URL returned.</p>`;
+                        }
                     } else {
                         responseContainer.innerHTML = `<p class="error">${data.error || 'Failed to generate quiz.'}</p>`;
                     }

@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Initial Quiz View -->
+    <div id="quiz-intro" class="text-center">
+        <h1 class="mb-4">{{ quiz.title }}</h1>
+        <button id="start-quiz" class="btn btn-primary btn-lg">Start Quiz</button>
+    </div>
+
+    <!-- Quiz Questions View (initially hidden) -->
+    <div id="quiz-questions" class="d-none">
+        <!-- Question Navigation -->
+        <div class="question-nav mb-4">
+            <div class="d-flex justify-content-center">
+                {% for question in quiz.questions.all %}
+                <div class="question-number mx-2 {% if forloop.first %}active{% endif %}"
+                     data-question="{{ forloop.counter }}">
+                    {{ forloop.counter }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Question Content -->
+        <div class="question-container">
+            {% for question in quiz.questions.all %}
+            <div class="question-slide {% if forloop.first %}active{% endif %}"
+                 data-question="{{ forloop.counter }}">
+                <h2 class="question-text mb-4">{{ question.question_text }}</h2>
+                
+                <!-- Answer Options -->
+                <div class="options-container">
+                    {% for option in question.options.all %}
+                    <div class="option mb-3">
+                        <button class="btn btn-outline-primary w-100 text-left option-btn"
+                                data-option="{{ option.option_id }}">
+                            {{ option.option_text }}
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="navigation-buttons mt-4 d-flex justify-content-between">
+            <button id="prev-btn" class="btn btn-secondary d-none">Previous</button>
+            <button id="next-btn" class="btn btn-primary">Next</button>
+            <button id="results-btn" class="btn btn-success d-none">Show Results</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add CSS -->
+<style>
+    .question-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .question-number.active {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .question-slide {
+        display: none;
+    }
+
+    .question-slide.active {
+        display: block;
+    }
+
+    .option-btn.selected {
+        background-color: #007bff;
+        color: white;
+    }
+</style>
+
+<!-- Add JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startBtn = document.getElementById('start-quiz');
+    const quizIntro = document.getElementById('quiz-intro');
+    const quizQuestions = document.getElementById('quiz-questions');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const resultsBtn = document.getElementById('results-btn');
+    const totalQuestions = {{ quiz.questions.count }};
+    let currentQuestion = 1;
+
+    // Start quiz
+    startBtn.addEventListener('click', function() {
+        quizIntro.classList.add('d-none');
+        quizQuestions.classList.remove('d-none');
+        updateNavigation();
+    });
+
+    // Handle option selection
+    document.querySelectorAll('.option-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove selection from other options in the same question
+            const currentSlide = this.closest('.question-slide');
+            currentSlide.querySelectorAll('.option-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            // Select this option
+            this.classList.add('selected');
+        });
+    });
+
+    // Navigation buttons
+    prevBtn.addEventListener('click', () => navigateQuestions('prev'));
+    nextBtn.addEventListener('click', () => navigateQuestions('next'));
+
+    function navigateQuestions(direction) {
+        const currentSlide = document.querySelector(`.question-slide[data-question="${currentQuestion}"]`);
+        currentSlide.classList.remove('active');
+        
+        if (direction === 'next') {
+            currentQuestion = Math.min(currentQuestion + 1, totalQuestions);
+        } else {
+            currentQuestion = Math.max(currentQuestion - 1, 1);
+        }
+
+        const nextSlide = document.querySelector(`.question-slide[data-question="${currentQuestion}"]`);
+        nextSlide.classList.add('active');
+        
+        updateNavigation();
+    }
+
+    function updateNavigation() {
+        // Update question numbers
+        document.querySelectorAll('.question-number').forEach(num => {
+            num.classList.remove('active');
+            if (parseInt(num.dataset.question) === currentQuestion) {
+                num.classList.add('active');
+            }
+        });
+
+        // Update buttons
+        prevBtn.classList.toggle('d-none', currentQuestion === 1);
+        nextBtn.classList.toggle('d-none', currentQuestion === totalQuestions);
+        resultsBtn.classList.toggle('d-none', currentQuestion !== totalQuestions);
+    }
+});
+</script>
+{% endblock %}
