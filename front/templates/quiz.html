@@ -26,16 +26,15 @@
         <!-- Question Content -->
         <div class="question-container">
             {% for question in quiz.questions.all %}
-            <div class="question-slide {% if forloop.first %}active{% endif %}"
-                 data-question="{{ forloop.counter }}">
+            <div class="question-slide {% if forloop.first %}active{% endif %}" data-question="{{ forloop.counter }}"
+                data-question-id="{{ question.question_id }}">
                 <h2 class="question-text mb-4">{{ question.question_text }}</h2>
-                
-                <!-- Answer Options -->
                 <div class="options-container">
                     {% for option in question.options.all %}
                     <div class="option mb-3">
                         <button class="btn btn-outline-primary w-100 text-left option-btn"
-                                data-option="{{ option.option_id }}">
+                                data-option="{{ option.option_id }}"
+                                {% if option.is_correct %}data-correct="true"{% endif %}>
                             {{ option.option_text }}
                         </button>
                     </div>
@@ -52,9 +51,16 @@
             <button id="results-btn" class="btn btn-success d-none">Show Results</button>
         </div>
     </div>
+
+    <!-- Results View (initially hidden) -->
+    <div id="quiz-results" class="d-none">
+        <h2 class="mb-4">Quiz Results</h2>
+        <p id="score"></p>
+        <div id="incorrect-list"></div>
+        <button id="retry-btn" class="btn btn-secondary mt-3">Retry Quiz</button>
+    </div>
 </div>
 
-<!-- Add CSS -->
 <style>
     .question-number {
         width: 40px;
@@ -66,91 +72,128 @@
         justify-content: center;
         cursor: pointer;
     }
-
     .question-number.active {
         background-color: #007bff;
         color: white;
     }
-
-    .question-slide {
-        display: none;
-    }
-
-    .question-slide.active {
-        display: block;
-    }
-
-    .option-btn.selected {
-        background-color: #007bff;
-        color: white;
-    }
+    .question-slide { display: none; }
+    .question-slide.active { display: block; }
+    .option-btn.selected { background-color: #007bff; color: white; }
 </style>
 
-<!-- Add JavaScript -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const startBtn = document.getElementById('start-quiz');
     const quizIntro = document.getElementById('quiz-intro');
     const quizQuestions = document.getElementById('quiz-questions');
+    const quizResults = document.getElementById('quiz-results');
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
     const resultsBtn = document.getElementById('results-btn');
+    const retryBtn = document.getElementById('retry-btn');
     const totalQuestions = {{ quiz.questions.count }};
     let currentQuestion = 1;
+
+    // Track user answers: {question_id: selected_option_id}
+    const userAnswers = {};
 
     // Start quiz
     startBtn.addEventListener('click', function() {
         quizIntro.classList.add('d-none');
         quizQuestions.classList.remove('d-none');
+        showQuestion(1);
         updateNavigation();
     });
 
     // Handle option selection
     document.querySelectorAll('.option-btn').forEach(button => {
         button.addEventListener('click', function() {
-            // Remove selection from other options in the same question
             const currentSlide = this.closest('.question-slide');
+            const questionId = currentSlide.dataset.questionId;
+            const selectedOption = this.dataset.option;
+
+            // Remove selection from other options
             currentSlide.querySelectorAll('.option-btn').forEach(btn => {
                 btn.classList.remove('selected');
             });
-            // Select this option
             this.classList.add('selected');
+
+            // Save user answer
+            userAnswers[questionId] = selectedOption;
         });
     });
 
     // Navigation buttons
     prevBtn.addEventListener('click', () => navigateQuestions('prev'));
     nextBtn.addEventListener('click', () => navigateQuestions('next'));
+    resultsBtn.addEventListener('click', showResults);
+    retryBtn.addEventListener('click', () => window.location.reload());
 
     function navigateQuestions(direction) {
         const currentSlide = document.querySelector(`.question-slide[data-question="${currentQuestion}"]`);
         currentSlide.classList.remove('active');
-        
         if (direction === 'next') {
             currentQuestion = Math.min(currentQuestion + 1, totalQuestions);
         } else {
             currentQuestion = Math.max(currentQuestion - 1, 1);
         }
-
-        const nextSlide = document.querySelector(`.question-slide[data-question="${currentQuestion}"]`);
-        nextSlide.classList.add('active');
-        
+        showQuestion(currentQuestion);
         updateNavigation();
     }
 
+    function showQuestion(num) {
+        document.querySelectorAll('.question-slide').forEach(slide => slide.classList.remove('active'));
+        const nextSlide = document.querySelector(`.question-slide[data-question="${num}"]`);
+        if (nextSlide) nextSlide.classList.add('active');
+    }
+
     function updateNavigation() {
-        // Update question numbers
         document.querySelectorAll('.question-number').forEach(num => {
             num.classList.remove('active');
             if (parseInt(num.dataset.question) === currentQuestion) {
                 num.classList.add('active');
             }
         });
-
-        // Update buttons
         prevBtn.classList.toggle('d-none', currentQuestion === 1);
         nextBtn.classList.toggle('d-none', currentQuestion === totalQuestions);
         resultsBtn.classList.toggle('d-none', currentQuestion !== totalQuestions);
+    }
+
+    function showResults() {
+        quizQuestions.classList.add('d-none');
+        quizResults.classList.remove('d-none');
+
+        // Calculate score and incorrect questions
+        let correctCount = 0;
+        const incorrectQuestions = [];
+        document.querySelectorAll('.question-slide').forEach(slide => {
+            const questionId = slide.dataset.questionId;
+            const correctBtn = slide.querySelector('.option-btn[data-correct="true"]');
+            const correctOption = correctBtn ? correctBtn.dataset.option : null;
+            const userOption = userAnswers[questionId];
+            if (userOption === correctOption) {
+                correctCount += 1;
+            } else {
+                // Get question text for display
+                const questionText = slide.querySelector('.question-text').textContent;
+                incorrectQuestions.push(questionText);
+            }
+        });
+        const scorePercent = Math.round((correctCount / totalQuestions) * 100);
+        document.getElementById('score').textContent = `Your score is ${scorePercent}%`;
+
+        // List incorrect questions
+        const incorrectList = document.getElementById('incorrect-list');
+        if (incorrectQuestions.length > 0) {
+            let html = '<h4>Questions you missed:</h4><ul>';
+            incorrectQuestions.forEach(q => {
+                html += `<li>${q}</li>`;
+            });
+            html += '</ul>';
+            incorrectList.innerHTML = html;
+        } else {
+            incorrectList.innerHTML = '<p>Congratulations! You answered all questions correctly.</p>';
+        }
     }
 });
 </script>
