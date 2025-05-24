@@ -79,9 +79,9 @@ def generate_quiz_prompt(description):
         }}
     ]
     IMPORTANT RULES:
-    1. The 'id' field MUST follow the exact pattern 'q_topic_XXX' where XXX is a 3-digit number (001-999)
-    2. Do not use any other format for the ID field
-    3. Example valid IDs: 'q_topic_001', 'q_topic_002', 'q_topic_010', 'q_topic_999'
+    1. The 'id' field MUST follow the pattern 'q_topic_XXX' where XXX is a 3-digit number (001-999)
+    2. The topic part in the ID can include underscores (e.g., 'q_animal_fan_001' is valid)
+    3. Example valid IDs: 'q_topic_001', 'q_topic_002', 'q_animal_fan_010', 'q_science_quiz_999'
     4. Return ONLY the JSON array with no additional text or formatting."""
     
 def create_quiz(quiz_data: str) -> tuple[bool, str, int]:
