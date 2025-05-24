@@ -87,6 +87,7 @@ def generate_quiz_prompt(description):
 def create_quiz(quiz_data: str) -> tuple[bool, str, int]:
     """
     Creates a quiz in the database based on the validated JSON data.
+    Uses bulk operations for better performance.
     
     Args:
         quiz_data (str): JSON string containing validated quiz data
@@ -102,42 +103,56 @@ def create_quiz(quiz_data: str) -> tuple[bool, str, int]:
         questions_data = json.loads(quiz_data)
         
         if not questions_data:
+            logger.error("Empty quiz data received")
             return False, "Empty quiz data", None
             
         # Extract topic from first question for the quiz title
         first_question = questions_data[0]
         topic = first_question.get('topic', 'General Knowledge')
         
-        # Create the Quiz instance
+        # Create the Quiz instance (can't bulk create as we need the ID)
         quiz = Quiz.objects.create(
             title=f"Quiz about {topic}",
             description=f"A quiz containing {len(questions_data)} questions about {topic}"
         )
-        
-        # Create Questions and Options
+        logger.info(f"Created quiz with ID {quiz.quiz_id}")
+
+        # Prepare questions for bulk creation
+        questions_to_create = []
         for q_data in questions_data:
-            # Create Question
-            question = Question.objects.create(
+            question = Question(
                 quiz=quiz,
                 question_text=q_data['question_text'],
                 question_type=q_data['type'],
-                order_in_quiz=int(q_data['id'].split('_')[-1])  # Extract number from q_topic_XXX
+                order_in_quiz=int(q_data['id'].split('_')[-1])
             )
-            
-            # Create Answer Options
+            questions_to_create.append(question)
+        
+        # Bulk create questions
+        questions = Question.objects.bulk_create(questions_to_create)
+        logger.info(f"Bulk created {len(questions)} questions")
+        
+        # Prepare options for bulk creation
+        options_to_create = []
+        for question, q_data in zip(questions, questions_data):
             for opt in q_data['options']:
-                AnswerOption.objects.create(
+                option = AnswerOption(
                     question=question,
                     option_text=opt['text'],
                     is_correct=(opt['option_id'] == q_data['correct_answer_id'])
                 )
+                options_to_create.append(option)
         
-        logger.info(f"Successfully created quiz {quiz.quiz_id} with {len(questions_data)} questions")
+        # Bulk create options
+        options = AnswerOption.objects.bulk_create(options_to_create)
+        logger.info(f"Bulk created {len(options)} answer options")
+        
+        logger.info(f"Successfully created quiz {quiz.quiz_id} with {len(questions)} questions")
         return True, "Quiz created successfully", quiz.quiz_id
         
     except json.JSONDecodeError as e:
         logger.error(f"Invalid JSON data: {e}")
         return False, f"Invalid JSON data: {str(e)}", None
     except Exception as e:
-        logger.error(f"Error creating quiz: {e}")
+        logger.error(f"Error creating quiz: {str(e)}")
         return False, f"Failed to create quiz: {str(e)}", None
