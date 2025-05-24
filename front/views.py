@@ -33,7 +33,7 @@ try:
 
     # Create the model instance (choose the model you want to use)
     # Common models: 'gemini-pro', 'gemini-1.5-flash', 'gemini-1.5-pro'
-    model = genai.GenerativeModel('gemini-2.5-pro-exp-03-25')
+    model = genai.GenerativeModel('gemini-2.5-flash-preview-05-20')
 
 except Exception as e:
     # Handle configuration errors more robustly in production
