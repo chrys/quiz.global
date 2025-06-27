@@ -1,60 +1,362 @@
-body {
-    background-color: #222; /* Dark background */
-    color: #eee; /* Light text color */
-    font-family: sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+:root {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --accent: #6c63ff;
+    --accent-hover: #5a52e0;
+    --success: #4CAF50;
+    --error: #ff6b6b;
+    --border-color: #3d3d3d; /* Added for consistency */
+}
+
+* {
     margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    /* display: flex; /* Removing this for now, can be added per-page if needed */
+    /* flex-direction: column; */
+    /* align-items: center; */
+    padding: 2rem; /* Applied globally, can be overridden */
 }
 
 .container {
-    width: 80%;
     max-width: 800px;
-    padding: 20px;
+    width: 100%;
+    margin: 0 auto; /* Centers the container */
+    padding: 20px; /* Keep some padding for content within container */
+    /* text-align: center; /* Removing this, can be added per-page */
+}
+
+/* General heading styles */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary); /* Default heading color */
+}
+
+/* Styles from home.html that are general enough */
+h1.page-title { /* More specific selector for home page title */
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    background: linear-gradient(45deg, var(--accent), #ff6b6b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.description { /* This was in home.html, might be reusable or specific */
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 3rem;
+}
+
+/* Form elements styling */
+textarea, input[type="text"], input[type="email"], input[type="password"] {
+    width: 100%;
+    padding: 1rem;
+    background-color: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: 8px; /* Slightly smaller radius */
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+    margin-bottom: 1rem; /* Add some default margin */
+}
+
+textarea:focus, input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* Button styles, can be extended with .btn-primary, .btn-secondary etc. */
+.btn {
+    display: inline-block; /* Changed from block for more flexibility */
+    padding: 0.75rem 1.5rem; /* Standardized padding */
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px; /* Standardized radius */
+    font-size: 1rem; /* Standardized font size */
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none; /* For anchor tags styled as buttons */
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    background-color: var(--accent-hover);
+    transform: translateY(-2px);
+}
+
+.btn:disabled {
+    background-color: var(--text-secondary);
+    transform: none;
+    cursor: not-allowed;
+}
+
+/* Specific button styling from home.html */
+#generate-button { /* Keep ID specific styles if they are truly unique */
+    width: 200px; /* This could be a class like .btn-block or .w-auto */
+    margin: 0 auto 1.5rem auto; /* Added bottom margin */
+}
+
+#quiz-description { /* From home.html, specific ID */
+    min-height: 150px; /* Adjusted from 200px */
+    padding: 1.5rem;
+    border-radius: 12px; /* Kept original */
+    font-size: 1.1rem; /* Kept original */
+    resize: vertical;
+    margin-bottom: 1.5rem; /* Kept original */
+}
+
+#response-container { /* From home.html */
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background-color: var(--bg-secondary);
+    border-radius: 12px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+}
+
+#response-container.visible { /* From home.html */
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Progress bar styles from home.html */
+.progress-container {
+    margin-top: 2rem;
+    display: none; /* Initially hidden */
+}
+
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+.progress-line {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: var(--text-secondary);
+    z-index: 0;
+}
+
+.step {
+    position: relative;
+    z-index: 1;
+    background-color: var(--bg-primary); /* Match body background */
+    padding: 0 1rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.step.active {
+    color: var(--accent);
+}
+
+.step.completed {
+    color: var(--success);
+}
+
+.step-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: currentColor;
+}
+
+.status-message { /* Added for the progress message */
+    text-align: center;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+}
+
+/* Utility classes for status messages */
+.error-text { color: var(--error); } /* Renamed from .error to avoid conflicts */
+.loading-text { color: var(--accent); } /* Renamed from .loading */
+.success-text { color: var(--success); } /* Renamed from .success */
+
+.quiz-link { /* From home.html */
+    display: inline-block;
+    margin-top: 1rem;
+    padding: 0.75rem 1.5rem;
+    background-color: var(--accent);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.quiz-link:hover { /* From home.html */
+    background-color: var(--accent-hover);
+    transform: translateY(-2px);
+}
+
+@keyframes pulse { /* From home.html */
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.loading-text .step-dot { /* Adjusted selector */
+    animation: pulse 2s infinite;
+}
+
+/* Basic Bootstrap-like utilities that might be useful */
+.d-none { display: none !important; }
+.d-block { display: block !important; }
+.d-flex { display: flex !important; }
+.justify-content-center { justify-content: center !important; }
+.justify-content-between { justify-content: space-between !important; }
+.align-items-center { align-items: center !important; }
+.text-center { text-align: center !important; }
+.text-left { text-align: left !important; }
+.mt-1 { margin-top: 0.25rem !important; }
+.mt-2 { margin-top: 0.5rem !important; }
+.mt-3 { margin-top: 1rem !important; }
+.mt-4 { margin-top: 1.5rem !important; }
+.mt-5 { margin-top: 3rem !important; }
+.mb-1 { margin-bottom: 0.25rem !important; }
+.mb-2 { margin-bottom: 0.5rem !important; }
+.mb-3 { margin-bottom: 1rem !important; }
+.mb-4 { margin-bottom: 1.5rem !important; }
+.mb-5 { margin-bottom: 3rem !important; }
+.mx-2 { margin-left: 0.5rem !important; margin-right: 0.5rem !important; }
+.w-100 { width: 100% !important; }
+
+/* Ensure base.html and quiz.html also use these variables */
+/* For example, buttons in quiz.html should use .btn and potentially .btn-primary, .btn-secondary */
+
+.btn-primary {
+    background-color: var(--accent);
+    color: white;
+}
+.btn-primary:hover {
+    background-color: var(--accent-hover);
+}
+
+.btn-secondary {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+.btn-secondary:hover {
+    background-color: var(--border-color); /* Darken secondary button on hover */
+}
+
+.btn-success {
+    background-color: var(--success);
+    color: white;
+}
+.btn-success:hover {
+    background-color: #3e8e41; /* Darker green for success hover */
+}
+
+.btn-lg {
+    padding: 1rem 2rem; /* Larger padding */
+    font-size: 1.25rem; /* Larger font size */
+}
+
+.btn-outline-primary {
+    background-color: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+}
+.btn-outline-primary:hover {
+    background-color: var(--accent);
+    color: white;
+}
+
+/* Styles for quiz.html specific elements - can be moved to quiz.html if preferred or kept here for consolidation */
+.question-nav {
+    margin-bottom: 1.5rem; /* mb-4 */
+}
+
+.question-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--bg-secondary); /* Use theme color */
+    color: var(--text-secondary); /* Use theme color */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.question-number.active {
+    background-color: var(--accent);
+    color: white;
+}
+
+.question-slide { display: none; } /* Keep as is */
+.question-slide.active { display: block; } /* Keep as is */
+
+.option-btn { /* Already a class, good. Style with .btn and .btn-outline-primary */
+    /* text-align: left; /* This can be a utility class if needed elsewhere e.g. .text-left */
+}
+
+.option-btn.selected { /* This style needs to use the new variables */
+    background-color: var(--accent);
+    color: white;
+    border-color: var(--accent); /* Ensure border also changes */
+}
+
+/* Adjustments for quiz intro and results */
+#quiz-intro h1, #quiz-results h2 {
+    text-align: center;
+    margin-bottom: 1.5rem; /* mb-4 */
+}
+
+#quiz-intro button { /* Start Quiz button */
+    /* btn-lg can be a modifier class if font sizes/paddings are different */
+}
+
+#score {
+    font-size: 1.2rem;
+    color: var(--text-primary);
     text-align: center;
 }
 
-.content {
-    background-color: #333;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+#incorrect-list h4 {
+    color: var(--error-text); /* Use themed error color */
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
 }
 
-h1 {
-    margin-bottom: 20px;
-    color: #fff;
+#incorrect-list ul {
+    list-style-type: none;
+    padding-left: 0;
+    text-align: left; /* Or center if preferred */
 }
 
-#quiz-description {
-    width: 100%;
-    height: 150px;
-    padding: 10px;
-    margin-bottom: 10px;
-    border: 1px solid #555;
-    background-color: #444;
-    color: #eee;
-    resize: vertical;
-    border-radius: 5px;
+#incorrect-list li {
+    background-color: var(--bg-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
 }
 
-.description {
-    margin-bottom: 20px;
-    color: #ccc;
-}
-
-#generate-button {
-    background-color: #007bff; /* Blue button */
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-#generate-button:hover {
-    background-color: #0056b3; /* Darker blue on hover */
+/* Ensure body in quiz.html and home.html aligns items center if that's the desired layout */
+body.home-page, body.quiz-page { /* Example of page-specific body styling */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
