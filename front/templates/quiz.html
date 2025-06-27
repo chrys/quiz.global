@@ -1,11 +1,14 @@
 {% extends 'base.html' %}
 {% load static %}
+
+{% block body_class %}quiz-page{% endblock %}
+
 {% block content %}
 <div class="container mt-5">
     <!-- Initial Quiz View -->
     <div id="quiz-intro" class="text-center">
-        <h1 class="mb-4">{{ quiz.title }}</h1>
-        <button id="start-quiz" class="btn btn-primary btn-lg">Start Quiz</button>
+        <h1 class="mb-4 page-title">{{ quiz.title }}</h1> <!-- Added page-title for consistency if needed -->
+        <button id="start-quiz" class="btn btn-primary btn-lg">Start Quiz</button> <!-- btn-lg for larger button if defined -->
     </div>
 
     <!-- Quiz Questions View (initially hidden) -->
@@ -53,32 +56,14 @@
 
     <!-- Results View (initially hidden) -->
     <div id="quiz-results" class="d-none">
-        <h2 class="mb-4">Quiz Results</h2>
+        <h2 class="mb-4 page-title">Quiz Results</h2> <!-- Added page-title for consistency -->
         <p id="score"></p>
         <div id="incorrect-list"></div>
         <button id="retry-btn" class="btn btn-secondary mt-3">Retry Quiz</button>
     </div>
 </div>
 
-<style>
-    .question-number {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background-color: #e9ecef;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-    }
-    .question-number.active {
-        background-color: #007bff;
-        color: white;
-    }
-    .question-slide { display: none; }
-    .question-slide.active { display: block; }
-    .option-btn.selected { background-color: #007bff; color: white; }
-</style>
+<!-- Inline styles removed, should be covered by static/css/style.css -->
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -119,6 +104,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Save user answer
             userAnswers[questionId] = selectedOption;
+
+            // Auto-advance to next question if not the last question
+            // Ensure that nextBtn is visible before clicking.
+            // The nextBtn is hidden when it's the last question by updateNavigation()
+            // which is called by navigateQuestions().
+            // So, if nextBtn is not d-none, we can click it.
+            if (currentQuestion < totalQuestions) {
+                // A small delay can make UX smoother, but not strictly necessary
+                // setTimeout(() => nextBtn.click(), 100);
+                nextBtn.click();
+            } else {
+                // If it's the last question and an answer is selected,
+                // and if the results button is now visible,
+                // we could potentially auto-show results, but the requirement
+                // was only to auto-advance questions.
+                // For now, user still needs to click "Show Results".
+            }
         });
     });
 

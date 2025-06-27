@@ -4,198 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quiz Generator</title>
-    <style>
-        :root {
-            --bg-primary: #1a1a1a;
-            --bg-secondary: #2d2d2d;
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0a0;
-            --accent: #6c63ff;
-            --accent-hover: #5a52e0;
-            --success: #4CAF50;
-            --error: #ff6b6b;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.6;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 2rem;
-        }
-
-        .container {
-            max-width: 800px;
-            width: 100%;
-            margin: 0 auto;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1.5rem;
-            text-align: center;
-            background: linear-gradient(45deg, var(--accent), #ff6b6b);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .description {
-            text-align: center;
-            color: var(--text-secondary);
-            margin-bottom: 3rem;
-        }
-
-        #quiz-description {
-            width: 100%;
-            min-height: 200px;
-            padding: 1.5rem;
-            background-color: var(--bg-secondary);
-            border: 2px solid #3d3d3d;
-            border-radius: 12px;
-            color: var(--text-primary);
-            font-size: 1.1rem;
-            resize: vertical;
-            transition: border-color 0.3s ease;
-            margin-bottom: 1.5rem;
-        }
-
-        #quiz-description:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-
-        #generate-button {
-            display: block;
-            width: 200px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        #generate-button:hover {
-            background-color: var(--accent-hover);
-            transform: translateY(-2px);
-        }
-
-        #generate-button:disabled {
-            background-color: var(--text-secondary);
-            transform: none;
-            cursor: not-allowed;
-        }
-
-        #response-container {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            background-color: var(--bg-secondary);
-            border-radius: 12px;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.3s ease;
-        }
-
-        #response-container.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .progress-container {
-            margin-top: 2rem;
-            display: none;
-        }
-
-        .progress-steps {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            position: relative;
-        }
-
-        .progress-line {
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background-color: var(--text-secondary);
-            z-index: 0;
-        }
-
-        .step {
-            position: relative;
-            z-index: 1;
-            background-color: var(--bg-primary);
-            padding: 0 1rem;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .step.active {
-            color: var(--accent);
-        }
-
-        .step.completed {
-            color: var(--success);
-        }
-
-        .step-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background-color: currentColor;
-        }
-
-        .error { color: var(--error); }
-        .loading { color: var(--accent); }
-        .success { color: var(--success); }
-
-        .quiz-link {
-            display: inline-block;
-            margin-top: 1rem;
-            padding: 0.75rem 1.5rem;
-            background-color: var(--accent);
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-        }
-
-        .quiz-link:hover {
-            background-color: var(--accent-hover);
-            transform: translateY(-2px);
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        .loading .step-dot {
-            animation: pulse 2s infinite;
-        }
-    </style>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
+{% block body_class %}home-page{% endblock %} <!-- Added class for page specific body styling -->
 <body>
     <div class="container">
-        <h1>Quiz Generator</h1>
+        <h1 class="page-title">Quiz Generator</h1> <!-- Added class for h1 styling -->
         <p class="description">What would you like to learn today?</p>
         
         <textarea 
@@ -258,7 +73,7 @@
                 const description = quizDescription.value.trim();
 
                 if (!description) {
-                    responseContainer.innerHTML = '<p class="error">Please enter a description.</p>';
+                    responseContainer.innerHTML = '<p class="error-text">Please enter a description.</p>';
                     responseContainer.classList.add('visible');
                     return;
                 }
@@ -289,7 +104,7 @@
                         if (data.quiz_url) {
                             setTimeout(() => {
                                 responseContainer.innerHTML = `
-                                    <div class="success">
+                                    <div class="success-text">
                                         <h3>Quiz Created Successfully! 🎉</h3>
                                         <p>Your quiz is ready to take.</p>
                                         <a href="${data.quiz_url}" class="quiz-link">Start Quiz</a>
@@ -306,7 +121,7 @@
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    responseContainer.innerHTML = `<p class="error">${error.message || 'An error occurred. Please try again later.'}</p>`;
+                    responseContainer.innerHTML = `<p class="error-text">${error.message || 'An error occurred. Please try again later.'}</p>`;
                     responseContainer.classList.add('visible');
                     progressContainer.style.display = 'none';
                 } finally {
