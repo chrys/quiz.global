@@ -178,3 +178,4 @@ front/test_json.py
 
 #Project related 
 production_configuration/
+production_configuration /fetch_files.sh
