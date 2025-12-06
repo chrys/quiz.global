@@ -1,0 +1,57 @@
+[Unit]
+Description=Quiz Global Gunicorn Application Server
+Documentation=https://gunicorn.org/
+After=network.target postgresql.service
+Requires=quiz-gunicorn.socket
+PartOf=quiz-gunicorn.socket
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/srv/quiz.global
+
+# Environment file containing .env variables
+EnvironmentFile=/srv/quiz.global/.env
+EnvironmentFile=-/etc/default/quiz-gunicorn
+
+# Virtual environment
+Environment="PATH=/srv/quiz.global/venv/bin"
+
+# Standard output and error to journal for journalctl logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=quiz-gunicorn
+
+# The actual command to run the application
+ExecStart=/srv/quiz.global/venv/bin/gunicorn \
+    --config /srv/quiz.global/gunicorn_config.py \
+    --name quiz-gunicorn \
+    quiz2.wsgi:application
+
+# Graceful reload with HUP signal
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# Kill mode and signals for proper shutdown
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Restart policy
+Restart=on-failure
+RestartSec=5s
+FailureStartLimitInterval=1h
+FailureStartLimitBurst=3
+
+# Process limits
+LimitNOFILE=65535
+LimitNPROC=65535
+
+# Security settings
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/srv/quiz.global/logs /srv/quiz.global/media
+
+[Install]
+WantedBy=multi-user.target
