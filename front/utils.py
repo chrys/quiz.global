@@ -25,64 +25,84 @@ def write_response_to_file(response_text, file_path):
 def validate_quiz_response(response_text):
     try:
         my_schema = QuizSchema.model_json_schema()
-        # Strip Markdown code block syntax if present
-        cleaned_response = response_text.strip()
-        if cleaned_response.startswith('```'):
-            # Remove opening ```json or ``` line
-            cleaned_response = cleaned_response.split('\n', 1)[1]
-        if cleaned_response.endswith('```'):
-            # Remove closing ``` line
-            cleaned_response = cleaned_response.rsplit('\n', 1)[0]
         
-        cleaned_response = cleaned_response.strip()
+        # Strip whitespace
+        cleaned_response = response_text.strip()
+        
+        # Remove markdown code blocks and markers
+        if cleaned_response.startswith('```'):
+            cleaned_response = cleaned_response.split('\n', 1)[1] if '\n' in cleaned_response else cleaned_response[3:]
+        if cleaned_response.endswith('```'):
+            cleaned_response = cleaned_response.rsplit('\n', 1)[0] if '\n' in cleaned_response else cleaned_response[:-3]
+        
+        # Remove any remaining markdown markers
+        cleaned_response = cleaned_response.replace('```json', '').replace('```', '').strip()
+        
+        # Find JSON array boundaries - more robust extraction
+        start_idx = cleaned_response.find('[')
+        end_idx = cleaned_response.rfind(']')
+        
+        if start_idx == -1 or end_idx == -1 or start_idx >= end_idx:
+            logger.error(f"Could not find valid JSON array in response")
+            return False, "Response does not contain a valid JSON array", ""
+        
+        # Extract only the JSON array
+        cleaned_response = cleaned_response[start_idx:end_idx+1]
+        
+        # Parse JSON
         quiz_data = json.loads(cleaned_response)
         
-        # Write the original JSON string to file for debugging
+        # Write the JSON string to file for debugging
         write_response_to_file(cleaned_response, 'response.json')
         
-        logger.info(f"Validating quiz data: {quiz_data}")
+        logger.info(f"Validating quiz data with {len(quiz_data)} questions")
         # Validate the JSON structure against the schema
         validate(instance=quiz_data, schema=my_schema)
-        return True, ""
+        return True, "", cleaned_response
+        
     except json.JSONDecodeError as e:
         logger.error(f"JSON decode error: {e}")
-        return False, f"Invalid JSON format: {str(e)}"
+        return False, f"Invalid JSON format: {str(e)}", ""
     except ValidationError as e:
         logger.error(f"Validation error: {e}")
-        return False, f"Schema validation failed: {str(e)}"
+        return False, f"Schema validation failed: {str(e)}", ""
     except Exception as e:
         logger.error(f"Unexpected error during validation: {e}")
-        return False, f"Unexpected error during validation: {str(e)}"
+        return False, f"Unexpected error during validation: {str(e)}", ""
 
 
 def generate_quiz_prompt(description):
     
-    return f"""Create a quiz based on this description: {description}
-    IMPORTANT: Return ONLY the raw JSON array without any Markdown formatting or code blocks.
-    DO NOT include ```json or ``` markers.
-    Generate a complete and valid JSON array of question objects with this structure:
-    [
-        {{
-            "id": "q_topic_001", # IMPORTANT: ID must follow pattern 'q_topic_XXX' where XXX is a 3-digit number
-            "topic": "Topic Name",
-            "difficulty": "Easy/Medium/Hard",
-            "type": "MCQ",
-            "question_text": "Question text here?",
-            "options": [
-                {{"option_id": "a", "text": "First option"}},
-                {{"option_id": "b", "text": "Second option"}},
-                {{"option_id": "c", "text": "Third option"}},
-                {{"option_id": "d", "text": "Fourth option"}}
-            ],
-            "correct_answer_id": "a",
-            "explanation": "Explanation of the correct answer"
-        }}
-    ]
-    IMPORTANT RULES:
-    1. The 'id' field MUST follow the pattern 'q_topic_XXX' where XXX is a 3-digit number (001-999)
-    2. The topic part in the ID can include underscores (e.g., 'q_animal_fan_001' is valid)
-    3. Example valid IDs: 'q_topic_001', 'q_topic_002', 'q_animal_fan_010', 'q_science_quiz_999'
-    4. Return ONLY the JSON array with no additional text or formatting."""
+    return f"""You are a quiz generator. Create exactly 5 questions based on: {description}
+
+CRITICAL: Return ONLY valid JSON array. No markdown, no code blocks, no explanations.
+
+[
+    {{
+        "id": "q_subject_001",
+        "topic": "Topic",
+        "difficulty": "Easy",
+        "type": "MCQ",
+        "question_text": "Question?",
+        "options": [
+            {{"option_id": "a", "text": "Option A"}},
+            {{"option_id": "b", "text": "Option B"}},
+            {{"option_id": "c", "text": "Option C"}},
+            {{"option_id": "d", "text": "Option D"}}
+        ],
+        "correct_answer_id": "a",
+        "explanation": "Why correct"
+    }}
+]
+
+RULES:
+- id: q_<subject>_<3digits> (e.g. q_biology_001)
+- difficulty: Easy, Medium, or Hard only
+- options: exactly 4
+- correct_answer_id: a, b, c, or d
+- Generate exactly 5 questions
+- START with [ and END with ]
+- NO OTHER TEXT"""
     
 def create_quiz(quiz_data: str) -> tuple[bool, str, int]:
     """

@@ -14,5 +14,6 @@ pandas
 beautifulsoup4
 requests
 jsonschema
-
-
+django-allauth
+PyJWT
+cryptography

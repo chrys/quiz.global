@@ -32,8 +32,7 @@ try:
     genai.configure(api_key=api_key)
 
     # Create the model instance (choose the model you want to use)
-    # Common models: 'gemini-pro', 'gemini-1.5-flash', 'gemini-1.5-pro'
-    model = genai.GenerativeModel('gemini-2.5-flash-preview-05-20')
+    model = genai.GenerativeModel('gemini-2.0-flash')
 
 except Exception as e:
     # Handle configuration errors more robustly in production
@@ -68,14 +67,15 @@ def query_gemini(request):
             formatted_prompt = generate_quiz_prompt(description)
            
             # Send the query to the Gemini API
-            logger.info(f"Sending query to Gemini: {formatted_prompt}")
+            logger.info(f"Sending query to Gemini")
             try:
                 response = model.generate_content(
                     formatted_prompt,
                     generation_config={
-                        'temperature': 0.7,
-                        'top_p': 1,
-                        'top_k': 1,
+                        'temperature': 0.3,
+                        'top_p': 0.8,
+                        'top_k': 40,
+                        'max_output_tokens': 4096,
                     }
                 )
             except ConnectionError as e:
@@ -89,22 +89,16 @@ def query_gemini(request):
                 return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
             write_response_to_file(response.text, 'response.json')
             if response.parts:
-                # Validate the response
-                is_valid, error_message = validate_quiz_response(response.text)
+                # Validate the response and get cleaned JSON
+                is_valid, error_message, cleaned_json = validate_quiz_response(response.text)
                 if not is_valid:
                     logger.error(f"Invalid response format: {error_message}")
                     return JsonResponse({'error': f'Invalid response format: {error_message}'}, status=500)
     
-                # Create quiz if validation passed
-                success, message, quiz_id = create_quiz(response.text)
+                # Create quiz if validation passed - use cleaned JSON
+                success, message, quiz_id = create_quiz(cleaned_json)
                 if success:
                     logger.info(f"Created quiz with ID: {quiz_id}")
-                    # return JsonResponse({
-                    #     'success': True,
-                    #     'message': message,
-                    #     'quiz_id': quiz_id,
-                    #     'response': response.text
-                    # })
                     quiz_url = reverse('quiz_detail', args=[quiz_id])
                     return JsonResponse({
                         'success': True,

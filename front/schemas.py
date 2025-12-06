@@ -6,7 +6,7 @@ class Option(BaseModel):
     text: str = Field(..., description="Text of the option")
 
 class QuizQuestion(BaseModel):
-    id: str = Field(..., pattern="^q_[a-zA-Z_]*[0-9]{3}$", description="ID must match the pattern 'q_topic_XXX'")
+    id: str = Field(..., pattern="^q_[a-zA-Z0-9_]{1,}[0-9]{3}$", description="ID must match pattern q_*_XXX")
     topic: str = Field(..., description="Topic of the question")
     difficulty: str = Field(..., pattern="^(Easy|Medium|Hard)$", description="Difficulty must be 'Easy', 'Medium', or 'Hard'")
     type: str = Field(..., pattern="^MCQ$", description="Type must be 'MCQ'")
